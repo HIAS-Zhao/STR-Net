@@ -1,0 +1,19 @@
+# outputs and large artifacts are never committed
+output/
+*.pth
+*.onnx
+*.pt
+*.npy
+*.npz
+*.tar.zst
+# caches and local state
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+nohup.out
+*.log
+# editor / OS
+.vscode/
+.idea/
+.DS_Store
+initialization_ablation/

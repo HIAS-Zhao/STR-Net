@@ -1,0 +1,68 @@
+{
+  "experiment": "Spectral MLP Gate-765",
+  "version": "V1-independent-20260908",
+  "architecture": {
+    "name": "SpectralMLPGate_3_16_8_1",
+    "channels": [
+      3,
+      16,
+      8,
+      1
+    ],
+    "convolutions": "1x1 only",
+    "batch_norm": false,
+    "output": "raw logit",
+    "expected_parameters": 209,
+    "expected_macs_per_pixel": 184
+  },
+  "input": {
+    "bands": [
+      7,
+      6,
+      5
+    ],
+    "normalization": "/65535",
+    "valid_mask": "any source channel is nonzero",
+    "invalid_policy": "zero selected channels where valid is false"
+  },
+  "data": {
+    "activefire_train": "data/splits_activefire/voting_train.csv",
+    "activefire_val": "data/splits_activefire/voting_val.csv",
+    "activefire_test": "data/splits_activefire/voting_test.csv",
+    "land8fire_val": "data/splits_land8fire/land8fire_val.csv",
+    "land8fire_test": "data/splits_land8fire/land8fire_test.csv"
+  },
+  "tile": {
+    "size": 32,
+    "core_size": 32,
+    "halo": 8,
+    "input_size": 48
+  },
+  "training": {
+    "from_scratch": true,
+    "loss": "focal_tversky",
+    "optimizer": "AdamW",
+    "scheduler": "CosineAnnealingLR",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "epochs": 12,
+    "batch_size": 128,
+    "workers": 8,
+    "gradient_clip_norm": 5.0,
+    "checkpoint_recall_constraint": 0.995,
+    "checkpoint_tile_size": 32,
+    "checkpoint_selection": "ActiveFire-Val minimum candidate tile ratio at pixel Recall >=99.5%; PR-AUC tie-break",
+    "augmentation": "none",
+    "seed": 20260827
+  },
+  "runtime": {
+    "requested_device": "cuda",
+    "gpu_state": "SET_BY_RUNNER",
+    "power_energy_policy": "not_collected"
+  },
+  "outputs": {
+    "run_dir": "output/SEED_20260827/gate",
+    "best_checkpoint": "output/SEED_20260827/gate/SpectralMLPGate_best.pth",
+    "train_result_json": "output/SEED_20260827/gate/SPECTRAL_MLP_GATE_TRAIN_RESULT.json"
+  }
+}

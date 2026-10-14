@@ -1,0 +1,81 @@
+{
+  "experiment": "V1_SUPINIT_NOKD_765_20260908 Gate-PGSS-765 (STR-Net), seed 20260827",
+  "role": "consolidated frozen-threshold record; thresholds selected on Validation only, before any Test access",
+  "threshold_selection_policy": {
+    "gate": "selected on ActiveFire-Val; the SAME frozen value is reused on Land8Fire (zero-shot design)",
+    "verifier": "recomputed from the Validation split at every evaluation run (deterministic exact-F1 search); the values below are the formal-run record",
+    "land8fire_target": "diagnostic (target-calibrated) only; never used for the headline protocol"
+  },
+  "gate": {
+    "checkpoint": "output/SEED_20260827/gate/SpectralMLPGate_best.pth",
+    "checkpoint_sha256": "83bc878b84d16fc7740a237e1b85b3f4241f59be9a8e4fd729ebfbefc172165f",
+    "logit_threshold": -6.143380165100098,
+    "probability_threshold": 0.002149229375984409,
+    "source": "ActiveFire-Val",
+    "use": [
+      "ActiveFire-Test",
+      "Land8Fire-Test zero-shot",
+      "Land8Fire-Test target-calibrated"
+    ],
+    "comparison_rule": "candidate_pixels = valid & (gate_logit >= logit_threshold)"
+  },
+  "verifier": {
+    "checkpoint": "output/SEED_20260827/supinit_nokd_40E/model/model_best.pth",
+    "checkpoint_sha256": "da0f0c4f51d4d496d1d38398da6cccf9f0e60d880697c441483cfb4d53d7f3a8",
+    "architecture": "PGSSTinyV1(in_channels=3, width=32, head_width=8), 4401 parameters",
+    "activefire_source_frozen": {
+      "logit_threshold": 2.225609064102173,
+      "probability_threshold": 0.9025257573021724,
+      "source": "ActiveFire-Val",
+      "use": [
+        "ActiveFire-Test",
+        "Land8Fire-Test strict zero-shot"
+      ],
+      "selection_rule": "maximum exact valid-pixel F1",
+      "validation_metrics": {
+        "tp": 170846,
+        "fp": 7501,
+        "fn": 4216,
+        "precision": 0.9579415409286391,
+        "recall": 0.9759171036547052,
+        "f1": 0.9668457792529336
+      },
+      "comparison_rule": "prediction = (verifier_logit >= logit_threshold) & core_valid"
+    },
+    "land8fire_target_diagnostic": {
+      "logit_threshold": 19.686010360717773,
+      "probability_threshold": 0.9999999971785372,
+      "source": "Land8Fire-Val",
+      "use": [
+        "Land8Fire-Test target-calibrated (diagnostic only)"
+      ],
+      "selection_rule": "maximum exact valid-pixel F1",
+      "validation_metrics": {
+        "tp": 92007,
+        "fp": 7568,
+        "fn": 8956,
+        "precision": 0.9239969871955812,
+        "recall": 0.9112942365024811,
+        "f1": 0.9176016515573109
+      }
+    }
+  },
+  "full_pgss_comparator": {
+    "note": "scanner/full-PGSS baseline used only for comparison rows (full_pgss_metrics, gate_original_pgss_metrics); not part of the STR-Net head",
+    "logit_threshold": 2.344194173812866,
+    "probability_threshold": 0.912168,
+    "frozen_in": [
+      "configs/supinit_nokd_40e.json",
+      "configs/candidate_765.json"
+    ]
+  },
+  "sources": [
+    "output/SEED_20260827/configs/supinit_nokd_40e.json",
+    "output/SEED_20260827/supinit_nokd_40E/evaluation/inference_config.json",
+    "output/SEED_20260827/supinit_nokd_40E/evaluation/FORMAL_RESULT.json"
+  ],
+  "recorded_from_formal_result": {
+    "config_sha256": "ce9820c12b99e8b1aed86e2937f118fce7993bd8cf45d86a5e204bd6a2c6d8d9",
+    "test_used_for_selection": false
+  }
+}

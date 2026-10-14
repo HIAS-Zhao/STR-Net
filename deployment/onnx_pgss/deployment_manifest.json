@@ -1,0 +1,82 @@
+{
+  "package": "Gate-PGSS-765 SupInit No-KD",
+  "seed": 20260827,
+  "input": {
+    "bands": [
+      "B7",
+      "B6",
+      "B5"
+    ],
+    "normalization": "/65535",
+    "valid_mask": "any source band nonzero; zero invalid selected channels",
+    "dtype": "float32"
+  },
+  "geometry": {
+    "gate": [
+      3,
+      256,
+      256
+    ],
+    "pgss_dense": [
+      3,
+      256,
+      256
+    ],
+    "tile_core": 32,
+    "halo": 8,
+    "verifier_tile": [
+      3,
+      48,
+      48
+    ]
+  },
+  "models": {
+    "gate": {
+      "onnx": "models/gate_765_seed20260827.onnx",
+      "output": "gate_logit",
+      "raw_logit": true,
+      "threshold_logit": -6.143380165100098
+    },
+    "pgss": {
+      "onnx": "models/pgss_w32_765_seed20260827.onnx",
+      "output": "pgss_logit",
+      "raw_logit": true,
+      "threshold_logit": 2.344194173812866,
+      "checkpoint_val_selected_threshold_logit": 2.225609064102173,
+      "dense_reference": "models/pgss_w32_765_seed20260827.onnx"
+    },
+    "pgss_tile": {
+      "onnx": "models/pgss_w32_765_seed20260827_tile48.onnx",
+      "inputs": {
+        "image": "[B,3,48,48] float32",
+        "valid": "[B,1,48,48] bool"
+      },
+      "output": "pgss_core_logit [B,1,32,32]",
+      "raw_logit": true,
+      "threshold_logit": 2.344194173812866
+    }
+  },
+  "training_provenance": {
+    "gate_epochs": 12,
+    "candidate_pretrain_epochs": 40,
+    "followup_nokd_epochs": 40,
+    "initialization": "KD-free Candidate supervised checkpoint then No-KD supervised continuation",
+    "teacher_used": false,
+    "kd_used": false
+  },
+  "runtime": {
+    "pipeline": "Gate on full 256 image; select 32x32 cores; PGSS on 48x48 halo tiles; paste core logits",
+    "precision_target": "TensorRT FP16",
+    "engine_status": "NOT_BUILT",
+    "optimizer_state_exported": false
+  },
+  "validation": {
+    "onnx_checker": "PASS",
+    "onnxruntime_cpu_smoke": "PASS",
+    "full_Orin_FP16_acceptance": "PENDING"
+  },
+  "notes": [
+    "Dense graph is a reference graph; Conditional Sparse deployment should use pgss_tile with host-side 32x32 core placement.",
+    "The checkpoint ActiveFire-Val selected threshold 2.225609064102173 is retained separately; formal inference used 2.344194173812866."
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "experiment": "SEED_20260827 SupInit No-KD PGSS formal inference (public config)",
+  "version": "inference-20260909",
+  "data": {
+    "activefire_val": "data/splits_activefire/voting_val.csv",
+    "activefire_test": "data/splits_activefire/voting_test.csv",
+    "land8fire_val": "data/splits_land8fire/land8fire_val.csv",
+    "land8fire_test": "data/splits_land8fire/land8fire_test.csv"
+  },
+  "input": {
+    "bands": [
+      7,
+      6,
+      5
+    ],
+    "band_names": [
+      "B7",
+      "B6",
+      "B5"
+    ],
+    "normalization": "/65535",
+    "valid_mask": "any source channel is nonzero",
+    "invalid_policy": "zero selected channels where valid is false"
+  },
+  "tile": {
+    "core_size": 32,
+    "size": 32,
+    "halo": 8,
+    "input_size": 48,
+    "grid": "non-overlapping eligible 32x32 core tiles with 8-pixel halo"
+  },
+  "seed": 20260827,
+  "runtime": {
+    "requested_device": "cuda",
+    "fallback_device": "cpu",
+    "batch_size": 256,
+    "workers": 8,
+    "candidate_tile_batch_size": 128,
+    "power_energy_policy": "not collected"
+  },
+  "gate": {
+    "checkpoint": "output/SEED_20260827/gate/SpectralMLPGate_best.pth",
+    "activefire_val_logit_threshold": -6.143380165100098,
+    "land8fire_frozen_logit_threshold": -6.143380165100098,
+    "selection_rule": "ActiveFire-Val only; same frozen Gate threshold on Land8Fire"
+  },
+  "models": {
+    "candidate_checkpoint": "output/SEED_20260827/supinit_nokd_40E/model/model_best.pth",
+    "full_pgss_checkpoint": "output/frozen/full_pgss_scanner_model_best.pth",
+    "full_pgss_activefire_val_logit_threshold": 2.344194173812866,
+    "full_pgss_land8fire_val_logit_threshold": 2.344194173812866
+  },
+  "threshold_curve": {
+    "activefire_recall_constraints": [
+      0.945,
+      0.95,
+      0.955,
+      0.96
+    ]
+  },
+  "evaluation": {
+    "difficult_land8fire_scene_id": "LC08_L1TP_046029_20200908_20200908_01_RT"
+  },
+  "outputs": {
+    "run_dir": "output/SEED_20260827/supinit_nokd_40E/evaluation",
+    "result_json": "output/SEED_20260827/supinit_nokd_40E/evaluation/FORMAL_RESULT.json",
+    "comparison_csv": "output/SEED_20260827/supinit_nokd_40E/evaluation/FORMAL_SUMMARY.csv",
+    "threshold_curve_csv": "output/SEED_20260827/supinit_nokd_40E/evaluation/THRESHOLD_CURVE.csv",
+    "scene_metrics_csv": "output/SEED_20260827/supinit_nokd_40E/evaluation/SCENE_METRICS.csv",
+    "tile_coverage_csv": "output/SEED_20260827/supinit_nokd_40E/evaluation/TILE_COVERAGE.csv",
+    "report_md": "output/SEED_20260827/supinit_nokd_40E/evaluation/FORMAL_REPORT.md"
+  },
+  "provenance": {
+    "model": "output/SEED_20260827/supinit_nokd_40E/model/model_best.pth",
+    "test_used_for_selection": false,
+    "thresholds_selected_on": [
+      "ActiveFire-Val",
+      "Land8Fire-Val diagnostic only"
+    ]
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "experiment": "Gate-PGSS-765 kd_free_candidate_pgss No-KD",
+  "version": "V1-independent-20260908",
+  "seed": 20260827,
+  "input": {
+    "bands": [
+      7,
+      6,
+      5
+    ],
+    "normalization": "/65535",
+    "valid_mask": "any source channel is nonzero",
+    "invalid_policy": "zero selected channels where valid is false"
+  },
+  "data": {
+    "activefire_train": "data/splits_activefire/voting_train.csv",
+    "activefire_val": "data/splits_activefire/voting_val.csv",
+    "activefire_test": "data/splits_activefire/voting_test.csv",
+    "land8fire_val": "data/splits_land8fire/land8fire_val.csv",
+    "land8fire_test": "data/splits_land8fire/land8fire_test.csv"
+  },
+  "tile": {
+    "size": 32,
+    "core_size": 32,
+    "halo": 8,
+    "input_size": 48
+  },
+  "runtime": {
+    "requested_device": "cuda",
+    "gpu_state": "SET_BY_RUNNER",
+    "power_energy_policy": "not_collected"
+  },
+  "provenance": {
+    "test_used_for_training_or_selection": false,
+    "teacher_used": false,
+    "kd_used": false,
+    "student_structure": "PGSSTinyV1 width=32 head_width=8 dilation=[1,2]"
+  },
+  "_seed_dir": "output/SEED_20260827",
+  "gate": {
+    "checkpoint": "output/SEED_20260827/gate/SpectralMLPGate_best.pth",
+    "activefire_frozen_logit_threshold": -6.143380165100098,
+    "activefire_val_logit_threshold": -6.143380165100098,
+    "land8fire_frozen_logit_threshold": -6.143380165100098,
+    "selection_rule": "ActiveFire-Val only; frozen before any Test read"
+  },
+  "pgss": {
+    "checkpoint": "output/frozen/full_pgss_scanner_model_best.pth",
+    "activefire_frozen_logit_threshold": 2.344194173812866,
+    "land8fire_frozen_logit_threshold": 2.344194173812866
+  },
+  "thresholds": {
+    "gate_logit_threshold": -6.143380165100098,
+    "scanner_logit_threshold": 2.344194173812866
+  },
+  "sources": {
+    "gate_checkpoint": "output/SEED_20260827/gate/SpectralMLPGate_best.pth",
+    "scanner_checkpoint": "output/frozen/full_pgss_scanner_model_best.pth",
+    "candidate_manifest": "output/SEED_20260827/candidate/activefire_train_candidate_tiles.csv",
+    "candidate_tensor": "output/SEED_20260827/candidate/activefire_train_candidate_tiles.pt",
+    "initialization_checkpoint": "output/SEED_20260827/candidate/model/model_best.pth"
+  },
+  "training": {
+    "seed": 20260827,
+    "width": 32,
+    "head_width": 8,
+    "loss": "focal_tversky",
+    "epochs": 40,
+    "batch_size": 512,
+    "workers": 8,
+    "learning_rate": 0.0001,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 5.0,
+    "optimizer": "AdamW",
+    "scheduler": "CosineAnnealingLR",
+    "source_type": "candidate_tensor",
+    "initialization": "kd_free_candidate_pgss",
+    "teacher_used": false,
+    "kd_used": false
+  },
+  "evaluation": {
+    "batch_size": 256,
+    "workers": 4,
+    "candidate_tile_batch_size": 128
+  },
+  "outputs": {
+    "model_dir": "output/SEED_20260827/supinit_nokd_40E/model"
+  }
+}
