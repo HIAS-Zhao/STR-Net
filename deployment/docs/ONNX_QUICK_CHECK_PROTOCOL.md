@@ -21,3 +21,5 @@ Statuses:
 
 The final decision is made once on the TensorRT FP16 engine using the complete frozen validation protocol. `ONNX_QUICK_CHECK_PASS` must never be labeled `FP16_ACCEPTED` or strict numerical parity.
 
+Scope note: the `[1,C,256,256]` fixed input applies to the full-frame graphs (gate, dense reference). The 48x48 tile verifier (`[B,3,48,48] image + [B,1,48,48] valid` -> `[B,1,32,32] core_logit`) follows the same check groups with its own tile shapes; only its spatial dimensions differ.
+

@@ -1,9 +1,14 @@
 # Data
 
-The train/val/test splits are **not bundled** with this repository. This file
-describes how the data is distributed so the splits can be reconstructed or
-obtained; place the five CSV files in the layout below before running
-anything.
+The train/val/test splits are **not bundled** with this repository. They are
+maintained, together with the dataset preparation utilities and baseline
+implementations, in the related
+[fire-segmentation](https://github.com/HIAS-Zhao/fire-segmentation) repository.
+STR-Net-specific input preprocessing (bands 7/6/5, `/65535`, validity rule) and
+the evaluation protocol are defined in this repository and take precedence.
+This file describes how the data is distributed so the splits can be
+reconstructed or obtained; place the five CSV files in the layout below before
+running anything.
 
 ```text
 data/splits_activefire/voting_train.csv   # ActiveFire-Train: 50,285 patches / 2,270 scenes
