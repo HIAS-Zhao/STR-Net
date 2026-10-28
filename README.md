@@ -1,6 +1,6 @@
 # STR-Net
 
-STR-Net (Spectral-Gated Tile Routing Network) is a lightweight framework for active-fire segmentation in multispectral Landsat 8 imagery. A 209-parameter spectral gate screens pixels at original resolution, and single-pixel-triggered tile routing invokes a compact spatial verifier only on selected regions, skipping redundant background computation.
+STR-Net (Spectral-Gated Tile Routing Network) is a lightweight framework for active-fire segmentation in multispectral imagery, such as Landsat 8 imagery. A 209-parameter spectral gate screens pixels at original resolution, and single-pixel-triggered tile routing invokes a compact spatial verifier only on selected regions, skipping redundant background computation.
 
 This repository provides training, evaluation, and deployment workflows; the runnable configuration currently covers seed `20260827`.
 
@@ -117,33 +117,7 @@ and the evaluation protocol are defined in this repository and take precedence
 over the related repository's defaults; do not substitute the other
 repository's files for the local paths above.
 
-**Storage/memory note (stages 2-4):** Stage 2 materializes every candidate
-tile into one float16 tensor: 3,217,974 tiles of 3x48x48 (~41 GiB) plus uint8
-core labels and validity masks (~6 GiB) - roughly **47 GiB of disk and host
-RAM**. Both the materialization step and the training dataset load the full
-tensor into memory. This is a host-memory requirement, not a GPU-memory
-requirement; Stage 1 alone needs none of it.
-
-Stages 2-4 additionally need the frozen full-image PGSS scanner checkpoint
-(hard-negative mining and comparison baseline):
-
-```text
-output/frozen/full_pgss_scanner_model_best.pth
-```
-
-TODO(release): public download link. It is a PGSSTinyV1 (width 32) trained in
-a previous internal run; its ActiveFire logit threshold is frozen at
-`2.344194173812866` in the shipped configs. Stage 1 is fully runnable without
-it; stages 2-4 require it (stage 3 loads it for its frozen-protocol validation
-even though the training loss itself does not use it). Its location is set in
-the shipped configs (`pgss.checkpoint` / `sources.scanner_checkpoint` /
-`models.full_pgss_checkpoint`).
-
 ## 4. Training
-
-All training stages support:
-
-- Single GPU: run with `bash scripts/...` (no DDP code path in this project)
 
 Run every command from the repository root.
 
@@ -168,12 +142,14 @@ Default output directory:
 CUDA_VISIBLE_DEVICES=0 bash scripts/run_candidate_pretrain.sh
 ```
 
-Stage 2 scans the training patches with the frozen gate and the frozen scanner
-and materializes a float16 tensor of 48x48 windows (32 core + 8 halo; ~3.22M
-tiles in four categories; the tensor needs ~47 GiB of disk and host RAM, see
-section 3). The categories are `true_fire`, `pgss_false_positive`,
-`gate_background`, and `ordinary_background` (fire-free tiles the gate did
-not select). Stage 3 trains the verifier from scratch with a
+Candidate-tile construction uses the frozen spectral gate and a pretrained
+PGSS scanner (threshold: 2.344194173812866) for hard-negative mining. The
+scanner checkpoint is specified in the training configuration. Stage 2 scans
+the training patches and materializes a float16 tensor of 48x48 windows
+(32 core + 8 halo; ~3.22M tiles in four categories). The categories are
+`true_fire`, `pgss_false_positive`, `gate_background`, and
+`ordinary_background` (fire-free tiles the gate did not select). Stage 3
+trains the verifier from scratch with a
 `WeightedRandomSampler` (category fractions 0.45/0.25/0.20/0.10), AdamW lr
 1e-4, cosine schedule, batch 512, 40 epochs; the loss is computed on the 32x32
 core only. Best epoch = max ActiveFire-Val candidate-pipeline F1, where the
@@ -294,13 +270,9 @@ Notes:
   zero-shot pass (ActiveFire-Val thresholds, section 5 item 3) and a
   target-calibrated diagnostic pass (thresholds from Land8Fire-Val, section 5
   item 4). The paper's Land8Fire figures correspond to the calibrated
-  protocol; zero-shot numbers are separate and not interchangeable.
+  protocol.
 - Throughput and energy were measured on Jetson Orin NX with TensorRT FP16
-  engines in the paper's deployment experiments. Engines and measurement
-  scripts are not bundled here (section 6), so these figures cannot be
-  reproduced from this repository alone.
-- No result files are bundled; `scripts/run_formal_eval.sh` regenerates the
-  per-seed outputs listed in section 8.
+  engines in the paper's deployment experiments.
 
 ## 8. Outputs and Weights
 
@@ -319,10 +291,6 @@ Evaluation results are not bundled with this repository: running
 `output/SEED_20260827/supinit_nokd_40E/evaluation/` (`FORMAL_RESULT.json`,
 `FORMAL_SUMMARY.csv`, `THRESHOLD_CURVE.csv`, `SCENE_METRICS.csv`,
 `TILE_COVERAGE.csv`, `FORMAL_REPORT.md`), as described in section 5.
-
-TODO(release): add download links for the trained seed-20260827 gate/verifier
-checkpoints and the frozen scanner checkpoint. No pretrained weight is bundled
-with this repository.
 
 ## 9. License and Citation
 
