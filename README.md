@@ -286,12 +286,6 @@ Training and evaluation output directories typically include:
   `FORMAL_SUMMARY.csv`, `THRESHOLD_CURVE.csv`, `SCENE_METRICS.csv`,
   `TILE_COVERAGE.csv`, `FORMAL_REPORT.md`
 
-Evaluation results are not bundled with this repository: running
-`scripts/run_formal_eval.sh` produces them under
-`output/SEED_20260827/supinit_nokd_40E/evaluation/` (`FORMAL_RESULT.json`,
-`FORMAL_SUMMARY.csv`, `THRESHOLD_CURVE.csv`, `SCENE_METRICS.csv`,
-`TILE_COVERAGE.csv`, `FORMAL_REPORT.md`), as described in section 5.
-
 ## 9. License and Citation
 
 This project is intended for academic research and teaching. If you use it in
