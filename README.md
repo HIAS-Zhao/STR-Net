@@ -107,9 +107,9 @@ data/splits_land8fire/land8fire_test.csv  # 12,042 patches /    13 scenes
   `mkdir -p data/splits_activefire data/splits_land8fire`.
 - CSV format: first row is a header; each row contains an image path
   (10-band uint16 GeoTIFF, `256x256`) and a mask path (labels `mask > 0`).
-  The paths inside the shipped CSVs are absolute paths of the original
-  machine - update them to your local dataset location, or regenerate the
-  CSVs with the same scene membership.
+  Split CSV paths may need to be updated for your local environment.
+  Preserve the original scene membership when adjusting paths or
+  regenerating the CSVs.
 - Band notes: rasterio bands `7 6 5` (B7, B6, B5) scaled `float32 / 65535.0`;
   a pixel is valid iff any of the 10 source bands is nonzero.
 
@@ -286,8 +286,8 @@ seeds under the formal frozen-threshold protocol described in section 5:
 | --- | --- | --- |
 | ActiveFire-Test (source-frozen) | F1 | 96.73% |
 | ActiveFire-Test (source-frozen) | IoU | 93.66% |
-| Land8Fire-Test (cross-dataset) | F1 | 90.82% |
-| Land8Fire-Test (cross-dataset) | Recall | 96.02% |
+| Land8Fire-Test (target-calibrated) | F1 | 90.82% |
+| Land8Fire-Test (target-calibrated) | Recall | 96.02% |
 | Jetson Orin NX (TensorRT FP16) | Throughput | 115.7 img/s (ActiveFire) / 195.9 img/s (Land8Fire) |
 | Jetson Orin NX (TensorRT FP16) | Energy | 38.3 mJ/img (Land8Fire) |
 | vs. fastest neural baseline | Throughput | 1.27x (ActiveFire) / 2.12x (Land8Fire) |
@@ -389,9 +389,8 @@ experiment was re-run:
 
 ## 10. License and Citation
 
-This project is released under the MIT License (see `LICENSE`). It is intended
-for academic research and teaching; if you use it in a paper or project,
-please cite this repository and acknowledge the authors.
+This project is intended for academic research and teaching. If you use it in
+a paper or project, please cite this repository and acknowledge the authors.
 
 A BibTeX entry will be added with the paper publication. The two networks in
 `code/models/spectral_mlp_gate.py` and `code/models/pgss_model.py` are
