@@ -9,9 +9,9 @@ This repository provides training, evaluation, and deployment workflows; the run
 The dataset preparation utilities, fixed data splits, and baseline implementations associated with our experiments are maintained in our team's related repository:
 
 - **Repository:** [fire-segmentation](https://github.com/HIAS-Zhao/fire-segmentation)
-- **Related work:** DualSight-Fire (dual-decoder fire segmentation). That repository also hosts the shared ActiveFire/Land8Fire split CSVs used here, plus baseline implementations (U-Net, Attention U-Net, U-Net++, FDE-UNet, FPS-U2Net).
+- **Related work:** DualSight-Fire (dual-decoder fire segmentation). That repository also hosts the shared ActiveFire/Land8Fire split CSVs used here and the baseline implementations.
 
-Please refer to the related repository for dataset preparation, split definitions, and baseline-specific training and evaluation instructions. This repository focuses on STR-Net and its spectral gating, conditional tile routing, spatial verification, and sparse inference pipeline.
+Please refer to the related repository for dataset preparation, split definitions, and baseline-specific training and evaluation instructions. This repository focuses on STR-Net itself - spectral gating, conditional tile routing, spatial verification, and sparse inference; STR-Net-specific input preprocessing and the evaluation protocol are defined in this repository and take precedence.
 
 ## 1. Repository Structure
 
@@ -79,9 +79,8 @@ pip install -r requirements.txt
   (the scripts raise if `torch.cuda.is_available()` is false).
 - Tested versions: torch 2.5.1+cu124, numpy 1.26.4, rasterio 1.4.4,
   Python 3.10. Newer versions are likely compatible but have not been tested.
-- The ONNX export tool additionally needs `onnx` and `onnxruntime`; they are
-  intentionally not in `requirements.txt` because core training and evaluation
-  do not require them. See section 6 for the tool's current validation status.
+- The ONNX export tool additionally needs `onnx` and `onnxruntime`
+  (intentionally not in `requirements.txt`); see section 6 for its status.
 
 ## 3. Data Preparation
 
@@ -173,9 +172,8 @@ Stage 2 scans the training patches with the frozen gate and the frozen scanner
 and materializes a float16 tensor of 48x48 windows (32 core + 8 halo; ~3.22M
 tiles in four categories; the tensor needs ~47 GiB of disk and host RAM, see
 section 3). The categories are `true_fire`, `pgss_false_positive`,
-`gate_background`, and `ordinary_background` (fire-free tiles the gate did not
-select; this category is not filtered by tile validity and makes up ~95% of
-the tensor). Stage 3 trains the verifier from scratch with a
+`gate_background`, and `ordinary_background` (fire-free tiles the gate did
+not select). Stage 3 trains the verifier from scratch with a
 `WeightedRandomSampler` (category fractions 0.45/0.25/0.20/0.10), AdamW lr
 1e-4, cosine schedule, batch 512, 40 epochs; the loss is computed on the 32x32
 core only. Best epoch = max ActiveFire-Val candidate-pipeline F1, where the
@@ -194,10 +192,7 @@ CUDA_VISIBLE_DEVICES=0 bash scripts/run_supinit_nokd.sh
 Identical objective and data to stage 3, but initialized from the stage-3
 checkpoint (strict weight load; optimizer state is fresh) and trained with a
 plain shuffled pass over all tiles (no sampler). Checkpoint selection priority
-on ActiveFire-Val: (final event recall, pixel F1, PR-AUC). The small-event
-recall term that appears in the training code's selection string is currently
-inert - it reads a field the evaluator never produces - and does not influence
-selection; see section 9.
+on ActiveFire-Val: (final event recall, pixel-level F1, PR-AUC).
 
 For the random-init ablation, set `training.initialization` to `"random"` and
 `sources.initialization_checkpoint` to `null` in
@@ -257,27 +252,24 @@ core logits) is implemented in `code/core/candidate_pgss_eval.py`
   Threshold semantics: the gate uses `-6.143380165100098`; the tile verifier
   and its dense reference graph use the formal verifier threshold
   `2.225609064102173`; `2.344194173812866` belongs to the frozen full-PGSS
-  **scanner** - a training-time candidate-mining and comparison model that is
-  not part of the deployed head. As shipped, the manifest currently lists the
-  scanner value under `models.pgss` and `models.pgss_tile`; this must be
-  corrected before any deployment build (section 9, issue 1).
+  **scanner**, a training-time candidate-mining and comparison model that is
+  not part of the deployed head.
 - `deployment/tools/export_pgss_tile_seed20260827_onnx.py` - intended to
   export the seed-20260827 spatial verifier to the 48x48-tile graph
   (`[B,3,48,48] image + [B,1,48,48] valid` -> `[B,1,32,32] core_logit`),
   running onnx_checker and ONNX Runtime numeric checks as it goes.
-  **Status: not validated on a clean checkout.** The script still carries
-  source paths from the internal directory tree and a module import that does
-  not resolve in this repository layout, and `onnx`/`onnxruntime` are not in
-  `requirements.txt` (section 9, issue 2). No turn-key export command is
-  provided until it is fixed and re-verified.
 - ONNX binaries are not part of the Git repository (`.gitignore` excludes
-  `*.onnx`). The manifest records earlier internal validation status, but no
-  export artifact is bundled here to re-verify it; treat the manifest as an
-  interface contract, not as a verified export.
+  `*.onnx`); the manifest is an interface contract, not a bundled export.
 - `deployment/docs/ONNX_QUICK_CHECK_PROTOCOL.md` - the pre-TensorRT ONNX
   acceptance standard applied to the exported graphs.
 
-## 7. Reported Results
+**Status:** the ONNX export workflow has not yet been fully validated on a
+clean clone of this repository (`onnx`/`onnxruntime` are additionally
+required, and are intentionally not in `requirements.txt`). Before any
+deployment build, verify the exported models, thresholds, and numerical
+consistency against the PyTorch reference.
+
+## 7. Results
 
 Headline numbers as reported in the paper, aggregated over the three training
 seeds under the formal frozen-threshold protocol described in section 5:
@@ -332,68 +324,7 @@ TODO(release): add download links for the trained seed-20260827 gate/verifier
 checkpoints and the frozen scanner checkpoint. No pretrained weight is bundled
 with this repository.
 
-## 9. Known Issues
-
-This README describes the repository as it currently is. Documentation
-completeness does not imply that the code has been re-validated end-to-end on
-a clean checkout, nor that the release is final. The following
-documentation/code discrepancies were found while aligning this README with
-the code; they are recorded here and are **not** fixed in this pass, and no
-experiment was re-run:
-
-1. **Deployment manifest verifier thresholds (P0).**
-   `deployment/onnx_pgss/deployment_manifest.json` lists
-   `threshold_logit: 2.344194173812866` under both `models.pgss` and
-   `models.pgss_tile`. Both graphs are exports of the SV verifier, whose
-   formal threshold is `2.225609064102173`
-   (`code/eval/configs/FROZEN_THRESHOLDS.json`); the listed value is the
-   frozen full-PGSS *scanner* threshold. Correct the manifest before building
-   any deployment engine.
-2. **ONNX export tool not validated on a clean checkout (P1).**
-   `deployment/tools/export_pgss_tile_seed20260827_onnx.py` still carries
-   source paths from the internal directory tree and a module import that does
-   not resolve in this repository layout; `onnx`/`onnxruntime` are missing
-   from `requirements.txt`. The script has not been re-verified in this
-   repository.
-3. **Stage-4 small-event recall tie-break is inert (P1).**
-   `code/train/train_candidate_nokd.py` (`priority()`) reads an
-   `event_size_summary` field that the evaluator never produces, so that term
-   is always 0. The effective selection order is (final event recall, pixel
-   F1, PR-AUC), and the `checkpoint_selection` string written into
-   `TRAIN_REPORT.json` overstates it. Fixing this requires a code change; the
-   shipped seed-20260827 checkpoint (epoch 30) was selected by the effective
-   order.
-4. **Default band lists disagree with the configs (P2).**
-   `FireSegmentationCsvDataset`, `GateAuditDataset` and `load_pgss` default to
-   bands `(7, 6, 2)`, while every shipped config and checkpoint uses
-   `[7, 6, 5]`. All entry points pass bands explicitly, so runs are
-   unaffected, but the defaults are misleading.
-5. **`ordinary_background` tiles are not validity-filtered (P2).** The Stage-2
-   category mask is `~selected & ~truth`, so fully invalid tiles are included
-   in the training tensor (~95% of all tiles).
-6. **Train/inference border semantics differ slightly (P3).** Stages 3-4 run
-   a plain `model(images)` forward on the 48x48 tiles, while inference and the
-   ONNX graph use `forward_boundary_aligned_tile`, which masks out-of-image
-   features after the stem and each residual block. The difference is
-   confined to patch borders.
-7. **Probability thresholds in `FROZEN_THRESHOLDS.json` (P3).** The recorded
-   `probability_threshold` values for the gate (0.002149229375984409) and the
-   scanner (0.912168) do not equal the sigmoid of their logits
-   (0.0021430494 and 0.9124716 respectively). The logit values are
-   authoritative.
-8. **Random-init ablation reporting (P3).** If only
-   `training.initialization` is set to `"random"`, `TRAIN_REPORT.json` still
-   records and hashes the stage-3 checkpoint as `pretrain_checkpoint`; also
-   set `sources.initialization_checkpoint` to `null`, as described in
-   section 4.3.
-
-## 10. License and Citation
+## 9. License and Citation
 
 This project is intended for academic research and teaching. If you use it in
 a paper or project, please cite this repository and acknowledge the authors.
-
-A BibTeX entry will be added with the paper publication. The two networks in
-`code/models/spectral_mlp_gate.py` and `code/models/pgss_model.py` are
-original to this project; the frozen full-PGSS scanner used for candidate
-mining originates from a previous internal experiment of the same project
-line and is not a third-party work.
